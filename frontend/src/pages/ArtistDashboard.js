@@ -66,6 +66,53 @@ const fetchData = useCallback(async () => {
   }
 }, []);
 
+useEffect(() => {
+  if (!profiles) {
+    navigate('/login');
+    return;
+  }
+
+  // Redirect other roles to their respective dashboards
+  if (profiles.role === 'admin') {
+    navigate('/admin', { replace: true });
+    return;
+  }
+
+  if (profiles.role === 'lead_chitrakar') {
+    navigate('/lead-chitrakar', { replace: true });
+    return;
+  }
+
+  if (profiles.role === 'kalakar') {
+    navigate('/kalakar', { replace: true });
+    return;
+  }
+
+  // For artists - check approval status
+  if (profiles.role === 'artist' && !profiles.is_approved) {
+    setLoading(false);
+    return;
+  }
+
+  fetchData();
+}, [profiles, navigate, fetchData]);
+
+useEffect(() => {
+  if (!profiles) return;
+
+  setProfileForm({
+    full_name: profiles.full_name || '',
+    bio: profiles.bio || '',
+    location: profiles.location || '',
+    categories: profiles.categories || [],
+    avatar: profiles.avatar || '',
+    phone: profiles.phone || '',
+    teaching_rate: profiles.teaching_rate || null,
+    teaches_online: profiles.teaches_online || false,
+    teaches_offline: profiles.teaches_offline || false,
+  });
+}, [profiles]);
+
 const handleAddArtwork = async (e) => {
   e.preventDefault();
 
