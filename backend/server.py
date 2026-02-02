@@ -768,12 +768,8 @@ async def create_artwork(
 
         result = supabase.table("artworks").insert(artwork_data).execute()
 
-        if result.error:
-            print("SUPABASE INSERT ERROR:", result.error)
-            raise HTTPException(status_code=400, detail=result.error.message if hasattr(result.error, "message") else str(result.error))
-
         if not result.data:
-            raise HTTPException(status_code=400, detail="Insert succeeded but no data returned")
+            raise HTTPException(status_code=400, detail="Insert failed - no data returned")
 
         return {"success": True, "artwork": result.data[0]}
 
