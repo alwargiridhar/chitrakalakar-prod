@@ -130,5 +130,5 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     
     try:
         return await verify_supabase_token(credentials)
-    except:
+    except Exception:
         return None
