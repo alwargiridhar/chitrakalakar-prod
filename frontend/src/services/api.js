@@ -1,0 +1,204 @@
+import { supabase } from '../lib/supabase';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+// Get auth token from Supabase session
+const getToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token;
+};
+
+// Helper for API calls (SAFE VERSION)
+const apiCall = async (endpoint, options = {}) => {
+  const token = await getToken();
+
+  const headers = {
+    ...(options.body && { 'Content-Type': 'application/json' }),
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  let data = null;
+
+  const contentType = response.headers.get('content-type');
+  const hasJson = contentType?.includes('application/json');
+
+  if (hasJson) {
+    try {
+      data = await response.json(); // ✅ read ONCE
+    } catch (_) {}
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.message || 'Request failed');
+  }
+
+  return data;
+};
+
+// Auth APIs - Now using Supabase directly, these are for profile updates only
+export const authAPI = {
+  updateProfile: (data) => apiCall('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Public APIs
+export const publicAPI = {
+  getStats: () => apiCall('/public/stats'),
+  getFeaturedArtists: () => apiCall('/public/featured-artists'),
+  getArtists: () => apiCall('/public/artists'),
+  getArtistDetail: (artistId) => apiCall(`/public/artist/${artistId}`),
+  getPaintings: () => apiCall('/public/paintings'),
+  getPaintingDetail: (paintingId) => apiCall(`/public/painting/${paintingId}`),
+  getExhibitions: () => apiCall('/public/exhibitions'),
+  getActiveExhibitions: () => apiCall('/public/exhibitions/active'),
+  getArchivedExhibitions: () => apiCall('/public/exhibitions/archived'),
+  getFeaturedArtistDetail: (artistId) => apiCall(`/public/featured-artist/${artistId}`),
+  
+  // Art Class Enquiry
+  createArtClassEnquiry: (data) => apiCall('/public/art-class-enquiry', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getArtClassMatches: (enquiryId) => apiCall(`/public/art-class-matches/${enquiryId}`),
+  revealContact: (enquiryId, artistId) => apiCall('/public/reveal-contact', {
+    method: 'POST',
+    body: JSON.stringify({ enquiry_id: enquiryId, artist_id: artistId }),
+  }),
+};
+
+// User APIs
+export const userAPI = {
+  getMyEnquiries: () => apiCall('/user/my-enquiries'),
+  getProfile: () => apiCall('/user/profile'),
+};
+
+// Admin APIs
+export const adminAPI = {
+  getDashboard: () => apiCall('/admin/dashboard'),
+  getPendingArtists: () => apiCall('/admin/pending-artists'),
+  approveArtist: (artistId, approved) => apiCall('/admin/approve-artist', {
+    method: 'POST',
+    body: JSON.stringify({ artist_id: artistId, approved }),
+  }),
+  getPendingArtworks: () => apiCall('/admin/pending-artworks'),
+  approveArtwork: (artworkId, approved) => apiCall('/admin/approve-artwork', {
+    method: 'POST',
+    body: JSON.stringify({ artwork_id: artworkId, approved }),
+  }),
+  getPendingExhibitions: () => apiCall('/admin/pending-exhibitions'),
+  approveExhibition: (exhibitionId, approved) => apiCall('/admin/approve-exhibition', {
+    method: 'POST',
+    body: JSON.stringify({ exhibition_id: exhibitionId, approved }),
+  }),
+  archiveExhibition: (exhibitionId) => apiCall(`/admin/archive-exhibition/${exhibitionId}`, {
+    method: 'POST',
+  }),
+  getAllUsers: () => apiCall('/admin/all-users'),
+  toggleUserStatus: (userId) => apiCall(`/admin/toggle-user-status/${userId}`, {
+    method: 'POST',
+  }),
+  getAllOrders: () => apiCall('/admin/all-orders'),
+  
+  // Featured Artists
+  getFeaturedArtists: () => apiCall('/admin/featured-artists'),
+  getApprovedArtists: () => apiCall('/admin/approved-artists'),
+  getArtistPreview: (artistId) => apiCall(`/admin/artist-preview/${artistId}`),
+  
+  // Feature Contemporary Artist
+  createFeaturedArtist: (data) => apiCall('/admin/feature-contemporary-artist', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateFeaturedArtist: (artistId, data) => apiCall(`/admin/featured-artist/${artistId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  deleteFeaturedArtist: (artistId) => apiCall(`/admin/featured-artist/${artistId}`, {
+    method: 'DELETE',
+  }),
+  
+  // Feature Registered Artist
+  featureRegisteredArtist: (artistId, featured) => apiCall('/admin/feature-registered-artist', {
+    method: 'POST',
+    body: JSON.stringify({ artist_id: artistId, featured }),
+  }),
+  
+  // Sub-Admin Management
+  createSubAdmin: (data) => apiCall('/admin/create-sub-admin', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getSubAdmins: () => apiCall('/admin/sub-admins'),
+  
+  // Lead Chitrakar
+  leadChitrakarApproveArtwork: (artworkId, approved) => apiCall('/admin/lead-chitrakar/approve-artwork', {
+    method: 'POST',
+    body: JSON.stringify({ artwork_id: artworkId, approved }),
+  }),
+  
+  // Kalakar
+  kalakarGetExhibitionAnalytics: () => apiCall('/admin/kalakar/exhibitions-analytics'),
+  kalakarGetPaymentRecords: () => apiCall('/admin/kalakar/payment-records'),
+};
+
+// Artist APIs
+export const artistAPI = {
+  getDashboard: () => apiCall('/artist/dashboard'),
+
+  // ✅ FIXED
+  getPortfolio: () => apiCall('/artist/artworks'),
+
+  addArtwork: (artwork) => apiCall('/artist/artworks', {
+    method: 'POST',
+    body: JSON.stringify(artwork),
+  }),
+
+  updateArtwork: (id, artwork) => apiCall(`/artist/artworks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(artwork),
+  }),
+
+  deleteArtwork: (id) => apiCall(`/artist/artworks/${id}`, {
+    method: 'DELETE',
+  }),
+
+  getOrders: () => apiCall('/artist/orders'),
+
+  updateOrderStatus: (id, status) =>
+    apiCall(`/artist/orders/${id}/status?status=${status}`, {
+      method: 'PUT',
+    }),
+
+  getExhibitions: () => apiCall('/artist/exhibitions'),
+
+  createExhibition: (data) =>
+    apiCall('/artist/exhibitions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export async function getImageUrl(key, token) {
+  const res = await fetch(
+    `${process.env.REACT_APP_BACKEND_URL}/api/image-url?key=${encodeURIComponent(key)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) throw new Error('Failed to load image');
+
+  return res.json();
+}
+

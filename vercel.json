@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "buildCommand": "yarn --cwd frontend install && yarn --cwd frontend build",
+  "outputDirectory": "frontend/build",
+  "installCommand": "yarn --cwd frontend install --frozen-lockfile",
+  "framework": null,
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/logo.png",
+      "dest": "/logo.png"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "NODE_VERSION": "18"
+  }
+}
+
