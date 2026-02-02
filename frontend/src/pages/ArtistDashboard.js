@@ -10,8 +10,6 @@ function ArtistDashboard() {
   const { profiles, isArtist } = useAuth();
   const navigate = useNavigate();
   
-  console.log('PROFILES FROM AUTH:', profiles);
-  
   const [dashboardData, setDashboardData] = useState(null);
   const [artworks, setArtworks] = useState([]);
   const [orders, setOrders] = useState([]);
