@@ -14,6 +14,11 @@ SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', '')  # Get from Supa
 # Cache for JWKS
 _jwks_cache = None
 
+def get_supabase_for_auth():
+    """Get Supabase client for auth checks"""
+    from supabase_client import get_supabase_client
+    return get_supabase_client()
+
 async def get_jwks():
     """Fetch JWKS from Supabase"""
     global _jwks_cache
@@ -28,7 +33,7 @@ async def get_jwks():
 async def verify_supabase_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
     """
     Verify Supabase JWT token
-    Returns user data from token
+    Returns user data from token and database profile
     """
     token = credentials.credentials
     
@@ -48,15 +53,35 @@ async def verify_supabase_token(credentials: HTTPAuthorizationCredentials = Secu
         
         user_id = payload.get('sub')
         email = payload.get('email')
-        role = payload.get('user_metadata', {}).get('role', 'user')
         
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
         
+        # Fetch the actual role from the profiles table
+        try:
+            supabase = get_supabase_for_auth()
+            profile = supabase.table('profiles').select('role, is_approved, is_active').eq('id', user_id).single().execute()
+            
+            if profile.data:
+                role = profile.data.get('role', 'user')
+                is_approved = profile.data.get('is_approved', False)
+                is_active = profile.data.get('is_active', True)
+            else:
+                role = payload.get('user_metadata', {}).get('role', 'user')
+                is_approved = True
+                is_active = True
+        except Exception as e:
+            print(f"Error fetching profile for auth: {e}")
+            role = payload.get('user_metadata', {}).get('role', 'user')
+            is_approved = True
+            is_active = True
+        
         return {
             "id": user_id,
             "email": email,
-            "role": role
+            "role": role,
+            "is_approved": is_approved,
+            "is_active": is_active
         }
     
     except jwt.ExpiredSignatureError:
